@@ -1,0 +1,36 @@
+No,Main Category,Sub Category,Contoh Detail Produk (Level Lebih Rendah)
+1,Beverages,Soft Drinks / Carbonated Drinks,"Cola, Lemonade, Flavored Soda"
+,,RTD Tea & Coffee,"Teh botol, Kopi siap minum"
+,,Bottled Water / Mineral Water,"Air mineral, Air kemasan"
+,,Juice & Nectar,Jus buah kemasan
+,,Energy & Isotonic Drinks,"Minuman energi, Pocari-style"
+,,Dairy Drinks,"Susu cair, Yogurt drink"
+2,Food / Ambient Food,Cooking Oil,"Minyak goreng sawit, Minyak jagung"
+,,Condiments & Sauces,"Kecap, Saus sambal, Mayonnaise"
+,,Instant Noodles,Mie instan
+,,Biscuits & Cookies,"Biskuit, Wafer, Crackers"
+,,Confectionery / Candies,"Permen, Cokelat, permen karet"
+,,Snacks,"Keripik, Extruded snacks, Popcorn"
+,,Cereals & Breakfast,Sereal sarapan
+,,Spices & Seasonings,"Bumbu masak, Penyedap rasa"
+3,Dairy & Perishables,Liquid Milk,"Susu UHT, Susu pasteurisasi"
+,,Sweetened Condensed Milk,Susu kental manis
+,,Powdered Milk,Susu bubuk
+,,Yogurt & Cheese,"Yogurt, Keju olahan"
+4,Baby & Child,Baby Milk Formula,"Susu bayi 0-6 bulan, 6-12 bulan"
+,,Baby Food,"Makanan bayi bubur, snack bayi"
+,,Diapers & Baby Care,"Popok bayi, Tissue basah"
+5,Personal Care,Skin Care,"Krim wajah, Body lotion, Sabun mandi"
+,,Hair Care,"Shampoo, Conditioner, Hair oil"
+,,Oral Care,"Pasta gigi, Sikat gigi, Mouthwash"
+,,Deodorant & Antiperspirant,Deodoran roll-on & spray
+,,Feminine Hygiene,Pembalut wanita
+6,Beauty / Cosmetics,Makeup,"Lipstik, Foundation, Maskara"
+,,Fragrance / Cologne,"Parfum, Cologne"
+7,Home Care / Household,Fabric Wash (Detergent),"Deterjen bubuk, cair, softener"
+,,Dishwashing,Sabun cuci piring
+,,Floor & Surface Cleaner,"Pembersih lantai, kaca"
+,,Air Freshener & Insecticide,"Pengharum ruangan, Obat nyamuk"
+8,OTC / Pharmaceuticals,Health Supplements,"Vitamin, Suplemen kesehatan"
+,,Analgesics & Cough,"Obat sakit kepala, batuk"
+,,Remedy Drinks,Minuman kesehatan (tolak angin dll)
