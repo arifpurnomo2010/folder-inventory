@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 Project Inventory.xlsx
 inventory/
+logs.*.csv
