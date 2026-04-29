@@ -5,6 +5,7 @@ import os
 import re
 import threading
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
@@ -38,9 +39,18 @@ load_env_file(Path(__file__).with_name(".env"))
 DEFAULT_BASE_PATH = r'D:\Marketing Research\Reta'
 DEFAULT_OUTPUT_FILE = r'D:\Marketing Research\Reta\Project Inventory.xlsx'
 
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "").strip()
-DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
-DEEPSEEK_MODEL = "deepseek-chat"
+def _gemini_api_key() -> str:
+    return (
+        os.environ.get("GEMINI_API_KEY", "").strip()
+        or os.environ.get("GOOGLE_API_KEY", "").strip()
+    )
+
+
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash-lite").strip() or "gemini-2.0-flash-lite"
+GEMINI_GENERATE_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    f"{urllib.parse.quote(GEMINI_MODEL, safe='')}:generateContent"
+)
 MAX_CHARS_PER_DOC = 3000
 MAX_CONCURRENT_REQUESTS = 20
 API_TIMEOUT_SECONDS = 60
@@ -339,7 +349,7 @@ def normalize_product_category(category: str) -> str:
     return category_lookup.get(category_clean.lower(), 'Other')
 
 
-def parse_deepseek_json(raw_text: str) -> dict:
+def parse_llm_json(raw_text: str) -> dict:
     raw_clean = raw_text.replace("```json", "").replace("```", "").strip()
     try:
         return json.loads(raw_clean)
@@ -350,11 +360,23 @@ def parse_deepseek_json(raw_text: str) -> dict:
         return json.loads(match.group(0))
 
 
-def classify_product_category_with_deepseek(
+def _gemini_response_text(response_data: dict) -> str:
+    try:
+        parts = response_data["candidates"][0]["content"]["parts"]
+        return "".join(part.get("text", "") for part in parts).strip()
+    except (KeyError, IndexError, TypeError):
+        return ""
+
+
+def classify_product_category_with_gemini(
     filename: str,
     text: str,
     folder_context: str = "",
 ) -> str:
+    api_key = _gemini_api_key()
+    if not api_key:
+        return 'Other'
+
     has_text = bool(text.strip())
     has_context = bool(folder_context.strip())
     if not has_text and not has_context and not filename.strip():
@@ -394,31 +416,36 @@ Jawab HANYA dalam JSON valid, tanpa markdown dan tanpa penjelasan di luar JSON:
   "reason": "<alasan singkat 1 kalimat>"
 }}"""
 
+    url = f"{GEMINI_GENERATE_URL}?key={urllib.parse.quote(api_key, safe='')}"
     payload = {
-        "model": DEEPSEEK_MODEL,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0,
-        "max_tokens": 256,
-        "response_format": {"type": "json_object"},
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0,
+            "maxOutputTokens": 256,
+            "responseMimeType": "application/json",
+        },
     }
     request = urllib.request.Request(
-        DEEPSEEK_API_URL,
+        url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-            "Content-Type": "application/json",
-        },
+        headers={"Content-Type": "application/json"},
         method="POST",
     )
 
     try:
         with urllib.request.urlopen(request, timeout=API_TIMEOUT_SECONDS) as response:
             response_data = json.loads(response.read().decode("utf-8"))
-        raw_content = response_data["choices"][0]["message"]["content"].strip()
-        parsed = parse_deepseek_json(raw_content)
+        raw_content = _gemini_response_text(response_data)
+        if not raw_content:
+            return 'Other'
+        parsed = parse_llm_json(raw_content)
         return normalize_product_category(parsed.get("product_category", ""))
-    except (urllib.error.URLError, urllib.error.HTTPError, KeyError, json.JSONDecodeError) as exc:
-        print(f"[WARN] DeepSeek gagal untuk {filename}: {str(exc)[:120]}")
+    except urllib.error.HTTPError as exc:
+        err_body = exc.read().decode("utf-8", errors="replace")[:300]
+        print(f"[WARN] Gemini HTTP error untuk {filename}: {exc.code} {err_body}")
+        return 'Other'
+    except (urllib.error.URLError, KeyError, json.JSONDecodeError) as exc:
+        print(f"[WARN] Gemini gagal untuk {filename}: {str(exc)[:120]}")
         return 'Other'
 
 def get_file_format(filepath):
@@ -489,7 +516,7 @@ def get_product_category_for_file(
     if not extraction.ok:
         return ProductCategoryResult(category='Other', extraction=extraction)
 
-    category = classify_product_category_with_deepseek(name, extraction.text, folder_context)
+    category = classify_product_category_with_gemini(name, extraction.text, folder_context)
     return ProductCategoryResult(category=category, extraction=extraction)
 
 
@@ -541,7 +568,7 @@ async def classify_supported_files_async(
 
     total = len(supported_files)
     if total == 0:
-        log_message("No supported documents found for DeepSeek classification.", logger)
+        log_message("No supported documents found for Gemini classification.", logger)
         return {}
 
     log_message(
@@ -694,7 +721,7 @@ async def classify_remaining_with_metadata_async(
             loop = asyncio.get_running_loop()
             category = await loop.run_in_executor(
                 executor,
-                classify_product_category_with_deepseek,
+                classify_product_category_with_gemini,
                 name,
                 "",
                 folder_context,
@@ -784,9 +811,9 @@ def run_inventory(
     max_concurrent: int = MAX_CONCURRENT_REQUESTS,
     logger: Callable[[str], None] | None = None,
 ):
-    if not DEEPSEEK_API_KEY:
-        log_message("[ERROR] DEEPSEEK_API_KEY is not set.", logger)
-        log_message('PowerShell: $env:DEEPSEEK_API_KEY="<your_deepseek_api_key>"', logger)
+    if not _gemini_api_key():
+        log_message("[ERROR] GEMINI_API_KEY (atau GOOGLE_API_KEY) is not set.", logger)
+        log_message('PowerShell: $env:GEMINI_API_KEY="<your_google_ai_studio_key>"', logger)
         return False
 
     if not check_required_dependencies(logger):
@@ -942,14 +969,14 @@ def launch_gui():
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Create a folder inventory with DeepSeek product categories.")
+    parser = argparse.ArgumentParser(description="Create a folder inventory with Gemini product categories.")
     parser.add_argument("--base-path", default=DEFAULT_BASE_PATH, help="Folder to scan.")
     parser.add_argument("--output-file", default=DEFAULT_OUTPUT_FILE, help="Excel output file path.")
     parser.add_argument(
         "--max-concurrent",
         type=int,
         default=MAX_CONCURRENT_REQUESTS,
-        help="Maximum concurrent DeepSeek requests.",
+        help="Maximum concurrent Gemini API requests.",
     )
     parser.add_argument("--cli", action="store_true", help="Run without the graphical interface.")
     return parser.parse_args()

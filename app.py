@@ -59,7 +59,7 @@ PAGE = """
       <input id="archive" name="archive" type="file" accept=".zip" required>
       <div class="hint">ZIP harus berisi dokumen yang ingin di-scan. Batas upload default: {{ max_upload_mb }} MB.</div>
 
-      <label for="max_concurrent">Max Concurrent DeepSeek Requests</label>
+      <label for="max_concurrent">Max Concurrent Gemini Requests</label>
       <input id="max_concurrent" name="max_concurrent" type="number" min="1" max="30" value="8">
       <div class="hint">Gunakan angka lebih kecil jika sering kena rate limit API.</div>
 
@@ -69,7 +69,8 @@ PAGE = """
 
   <h2>Railway Variables</h2>
   <p>Pastikan variable berikut sudah diset di Railway:</p>
-  <pre>DEEPSEEK_API_KEY=...</pre>
+  <pre>GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-2.0-flash-lite</pre>
 </body>
 </html>
 """
